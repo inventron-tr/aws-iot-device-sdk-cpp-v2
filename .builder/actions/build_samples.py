@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0.
 
 import Builder
+import itertools
 import os
 import sys
 
@@ -18,12 +19,18 @@ class BuildSamples(Builder.Action):
 
         steps = []
         samples = [
+            'samples/commands/commands-sandbox',
+            'samples/deprecated/fleet_provisioning/fleet_provisioning',
+            'samples/deprecated/fleet_provisioning/mqtt5_fleet_provisioning',
+            'samples/deprecated/jobs/job_execution',
+            'samples/deprecated/jobs/mqtt5_job_execution',
+            'samples/deprecated/shadow/shadow_sync',
+            'samples/deprecated/shadow/mqtt5_shadow_sync',
             'samples/greengrass/basic_discovery',
             'samples/greengrass/ipc',
-            'samples/fleet_provisioning/fleet_provisioning',
-            'samples/fleet_provisioning/mqtt5_fleet_provisioning',
-            'samples/jobs/job_execution',
-            'samples/jobs/mqtt5_job_execution',
+            'samples/fleet_provisioning/provision-basic',
+            'samples/fleet_provisioning/provision-csr',
+            'samples/jobs/jobs-sandbox',
             'samples/mqtt/basic_connect',
             'samples/mqtt/custom_authorizer_connect',
             'samples/mqtt/pkcs11_connect',
@@ -39,8 +46,7 @@ class BuildSamples(Builder.Action):
             "samples/pub_sub/cycle_pub_sub",
             'samples/secure_tunneling/secure_tunnel',
             'samples/secure_tunneling/tunnel_notification',
-            'samples/shadow/shadow_sync',
-            'samples/shadow/mqtt5_shadow_sync',
+            'samples/shadow/shadow-sandbox',
         ]
 
         defender_samples = []
@@ -62,7 +68,7 @@ class BuildSamples(Builder.Action):
             'servicetests/tests/ShadowUpdate/',
         ]
 
-        for sample_path in samples:
+        for sample_path in itertools.chain(samples, servicetests, da_samples, defender_samples):
             build_path = os.path.join('build', sample_path)
             steps.append(['cmake',
                           f'-B{build_path}',
@@ -71,43 +77,9 @@ class BuildSamples(Builder.Action):
                           '-DCMAKE_BUILD_TYPE=RelWithDebInfo'])
             # append extra cmake configs
             steps[-1].extend(cmd_args.cmake_extra)
-            steps.append(['cmake',
-                          '--build', build_path,
-                          '--config', 'RelWithDebInfo'])
-
-        for sample_path in servicetests:
-            build_path = os.path.join('build', sample_path)
-            steps.append(['cmake',
-                          f'-B{build_path}',
-                          f'-H{sample_path}',
-                          f'-DCMAKE_PREFIX_PATH={env.install_dir}',
-                          '-DCMAKE_BUILD_TYPE=RelWithDebInfo'])
-            # append extra cmake configs
-            steps[-1].extend(cmd_args.cmake_extra)
-            steps.append(['cmake',
-                          '--build', build_path,
-                          '--config', 'RelWithDebInfo'])
-
-        for sample_path in da_samples:
-            build_path = os.path.join('build', sample_path)
-            steps.append(['cmake',
-                          f'-B{build_path}',
-                          f'-H{sample_path}',
-                          f'-DCMAKE_PREFIX_PATH={env.install_dir}',
-                          '-DCMAKE_BUILD_TYPE=RelWithDebInfo'])
-            # append extra cmake configs
-            steps[-1].extend(cmd_args.cmake_extra)
-            steps.append(['cmake',
-                          '--build', build_path,
-                          '--config', 'RelWithDebInfo'])
-
-        for sample_path in defender_samples:
-            build_path = os.path.join('build', sample_path)
-            steps.append(['cmake',
-                          f'-B{build_path}',
-                          f'-H{sample_path}',
-                          f'-DCMAKE_PREFIX_PATH={env.install_dir}',
-                          '-DCMAKE_BUILD_TYPE=RelWithDebInfo'])
+            # Currently, cmake_args sets only Linux-specific options.
+            if sys.platform == "linux" or sys.platform == "linux2":
+                steps[-1].extend(env.config['cmake_args'])
             steps.append(['cmake',
                           '--build', build_path,
                           '--config', 'RelWithDebInfo'])
